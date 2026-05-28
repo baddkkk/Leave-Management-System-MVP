@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: leaveflow-backend
+    ports:
+      - "8000:8000"
+    environment:
+      SMTP_SERVER: mailhog
+      SMTP_PORT: "1025"
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_USE_SSL: "0"
+      EMAIL_FROM: "no-reply@leaveflow.local"
+      DEV_SHOW_TOKEN: "1"
+      ALLOWED_ORIGINS: "http://localhost,http://127.0.0.1"
+    volumes:
+      - ./backend:/app
+      - ./backend/leave_db.sqlite3:/app/leave_db.sqlite3
+    depends_on:
+      - mailhog
+
+  frontend:
+    build:
+      context: ./frontend/vite-project
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: leaveflow-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: leaveflow-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
