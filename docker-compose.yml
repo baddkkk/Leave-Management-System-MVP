@@ -1,0 +1,67 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: leaveflow-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: leaveflow_db
+      MYSQL_USER: leaveflow
+      MYSQL_PASSWORD: leaveflow_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "leaveflow", "-pleaveflow_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: leaveflow-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: leaveflow
+      DB_PASSWORD: leaveflow_pass
+      DB_NAME: leaveflow_db
+      SMTP_SERVER: mailhog
+      SMTP_PORT: "1025"
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_USE_SSL: "0"
+      EMAIL_FROM: "no-reply@leaveflow.local"
+      DEV_SHOW_TOKEN: "1"
+      ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend/vite-project
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: leaveflow-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: leaveflow-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  mysql_data:
